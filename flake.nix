@@ -18,6 +18,15 @@
         packages = {
           default = pkgs.sqlite;
           sqlite = pkgs.sqlite;
+          container = pkgs.dockerTools.buildLayeredImage {
+            name = "sqlite";
+            tag = "3.50.2";
+            created = "now";
+            config = {
+              Entrypoint = [ "${pkgs.sqlite}/bin/sqlite3" ];
+              Cmd = [ ];
+            };
+          };
         };
       }
     );

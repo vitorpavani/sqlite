@@ -22,20 +22,29 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Set Docker tags
+      - name: Extract tag from flake.nix
         id: vars
         run: |
-          TAGS="${{ secrets.DOCKERHUB_USERNAME }}/sqlite:latest"
-          if [[ $GITHUB_REF == refs/tags/* ]]; then
-            VERSION_TAG=${GITHUB_REF#refs/tags/}
-            TAGS="${{ secrets.DOCKERHUB_USERNAME }}/sqlite:${VERSION_TAG}"
-          fi
+          TAG=$(grep -Po 'tag\s*=\s*"\K[^"]+' flake.nix)
+          TAGS="${{ secrets.DOCKERHUB_USERNAME }}/sqlite:${TAG}"
           echo "tags=$TAGS" >> $GITHUB_OUTPUT
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
+      - name: Set up Nix
+        uses: cachix/install-nix-action@v27
         with:
-          context: .
-          file: ./Dockerfile
-          push: true
-          tags: ${{ steps.vars.outputs.tags }}
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      - name: Build Docker image with Nix
+        run: nix build .#container
+
+      - name: Load Docker image
+        run: docker load < ./result
+
+      - name: Tag Docker image
+        run: |
+          IMAGE_ID=$(docker images --format '{{.ID}}' | head -n1)
+          docker tag $IMAGE_ID ${{ steps.vars.outputs.tags }}
+
+      - name: Push Docker image
+        run: docker push ${{ steps.vars.outputs.tags }}
