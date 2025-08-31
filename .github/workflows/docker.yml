@@ -3,7 +3,7 @@ name: Build and Push sqlite Docker Image
 on:
   push:
     branches: [main]
-    tags: ['v*.*.*']
+    tags: ['*.*.*']
   workflow_dispatch:
 
 jobs:
@@ -26,7 +26,7 @@ jobs:
         id: vars
         run: |
           TAGS="${{ secrets.DOCKERHUB_USERNAME }}/sqlite:latest"
-          if [[ $GITHUB_REF == refs/tags/v* ]]; then
+          if [[ $GITHUB_REF == refs/tags/* ]]; then
             VERSION_TAG=${GITHUB_REF#refs/tags/}
             TAGS="${{ secrets.DOCKERHUB_USERNAME }}/sqlite:${VERSION_TAG}"
           fi
